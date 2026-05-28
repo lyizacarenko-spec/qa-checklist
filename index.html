@@ -908,7 +908,7 @@ async function transcribeAudio(){
       headers: {'authorization': '89f3d35d26254d6ab41ef13204bd7e15', 'content-type': 'application/json'},
       body: JSON.stringify({
         audio_url: uploadData.upload_url,
-        speech_model: 'universal-2',
+        speech_models: ['universal-3-pro', 'universal-2'],
         speaker_labels: true,
         language_detection: true
       })
