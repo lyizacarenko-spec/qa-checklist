@@ -979,15 +979,12 @@ function formatTime(ms){
 // INIT
 // ══════════════════════════════════════════════════════════
 (function init(){
-  SB_URL = localStorage.getItem('sb_url')||'';
-  SB_KEY = localStorage.getItem('sb_key')||'';
-  if(!SB_URL || !SB_KEY){
-    document.getElementById('setup-screen').style.display='flex';
-  } else {
-    document.getElementById('setup-screen').style.display='none';
-    document.getElementById('login-screen').style.display='block';
-  }
+  SB_URL = HARDCODED_URL;
+  SB_KEY = HARDCODED_KEY;
+  document.getElementById('setup-screen').style.display='none';
+  document.getElementById('login-screen').style.display='block';
 })();
+  }
 </script>
 </body>
 </html>
