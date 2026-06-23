@@ -31,7 +31,6 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-
 .num-btn:active{transform:scale(.94)}
 .num-btn.del{color:var(--muted);font-size:14px}
 .login-err{color:var(--red);font-size:12px;margin-top:8px;min-height:18px}
-.reviewer-tag{display:inline-flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;color:var(--gold)}
 
 /* ── NAV ── */
 .nav{background:#13110d;border-bottom:2px solid var(--gold);padding:0 20px;display:flex;align-items:center;gap:0;position:sticky;top:0;z-index:300}
@@ -93,14 +92,29 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-
 .opt.sel-no{border-color:var(--red);background:#2a1515;color:var(--red)}
 .opt.sel-na{border-color:var(--blue);background:#151e2a;color:var(--blue)}
 
+/* ── INLINE FEEDBACK ── */
+.q-feedback{margin-top:8px;border-radius:8px;padding:9px 13px;font-size:11px;line-height:1.6;display:none;animation:fadeIn .25s ease}
+.q-feedback.fb-good{background:#0d2018;border:1px solid #2a5c3a;color:#5dd98a}
+.q-feedback.fb-warn{background:#1e0f0f;border:1px solid #5c2a2a;color:#e07b7b}
+.q-feedback.fb-partial{background:#1e1608;border:1px solid #5c3e1a;color:#d4935a}
+.q-feedback.fb-na{background:#0d1520;border:1px solid #1a3050;color:#6aadde}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+
 /* ── BUTTONS ── */
 .btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:8px;font-family:'Montserrat',sans-serif;font-weight:700;font-size:12px;cursor:pointer;border:none;transition:all .15s}
 .btn-gold{background:var(--gold);color:#0e0f11}
 .btn-gold:hover{background:var(--gold2)}
 .btn-outline{background:transparent;border:1.5px solid var(--border);color:var(--muted)}
 .btn-outline:hover{border-color:var(--red);color:var(--red)}
+.btn-gen{background:transparent;border:1.5px solid var(--blue);color:var(--blue)}
+.btn-gen:hover{background:#151e2a}
 .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
 .btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* ── AUTO-ANALYSIS BANNER ── */
+.analysis-banner{background:linear-gradient(135deg,#0d1520,#151e30);border:1px solid #2a4060;border-radius:12px;padding:14px 16px;margin-bottom:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.analysis-banner-text{flex:1;font-size:12px;color:#8ab8e0;line-height:1.5}
+.analysis-banner-text strong{color:var(--blue);font-family:'Montserrat',sans-serif}
 
 /* ── HISTORY ── */
 .filter-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
@@ -173,7 +187,6 @@ code{background:#1a1c20;border:1px solid var(--border);border-radius:5px;padding
 #upload-label:hover{border-color:var(--gold)!important;color:var(--gold)!important}
 .speaker-a{color:#4a90d9;font-weight:600}
 .speaker-b{color:#4adf9a;font-weight:600}
-.speaker-u{color:var(--muted)}
 
 @media(max-width:600px){
   .meta-grid{grid-template-columns:1fr}
@@ -281,6 +294,9 @@ CREATE POLICY "allow all" ON qa_records FOR ALL USING (true);</div>
         <div class="field"><label>Менеджер</label>
           <select id="f-manager">
             <option value="">— выбери —</option>
+            <!-- ════════════════════════════════════════════
+                 СПИСОК МЕНЕДЖЕРОВ — обновлять здесь
+                 ════════════════════════════════════════════ -->
             <option>Бабенко Ольга</option>
             <option>Шелковникова Оксана (старший менеджер)</option>
             <option>Сараненко Максим</option>
@@ -310,7 +326,7 @@ CREATE POLICY "allow all" ON qa_records FOR ALL USING (true);</div>
             <option>Мажара Аліна (старший менеджер)</option>
             <option>Рябчук Інна</option>
             <option>Шеремета Віолетта</option>
-</select>
+          </select>
         </div>
         <div class="field"><label>Ссылка на звонок</label><input type="text" id="f-link" placeholder="https://..."></div>
       </div>
@@ -341,6 +357,14 @@ CREATE POLICY "allow all" ON qa_records FOR ALL USING (true);</div>
     <div id="sections-wrap"></div>
 
     <div class="card">
+      <div class="analysis-banner">
+        <div style="font-size:24px">🤖</div>
+        <div class="analysis-banner-text">
+          <strong>Автоматический анализ</strong><br>
+          Нажми кнопку, чтобы сгенерировать сильные/слабые стороны и рекомендации на основе всех ответов
+        </div>
+        <button class="btn btn-gen" onclick="autoGenAnalysis()" style="flex-shrink:0">✨ Сгенерировать анализ</button>
+      </div>
       <div class="card-title">💬 Комментарии</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         <div class="field"><label>💪 Сильные стороны</label><textarea id="c-strong" placeholder="Что менеджер делал хорошо..."></textarea></div>
@@ -392,13 +416,14 @@ CREATE POLICY "allow all" ON qa_records FOR ALL USING (true);</div>
 // CONFIG
 // ══════════════════════════════════════════════════════════
 const ASSEMBLY_KEY = '89f3d35d26254d6ab41ef13204bd7e15';
-const HARDCODED_URL = 'https://fkhoyaufehxcbrbguigz.supabase.co'
-const HARDCODED_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZraG95YXVmZWh4Y2JyYmd1aWd6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5NTE5MDQsImV4cCI6MjA5NTUyNzkwNH0.Q2smdVlK3CmxfR_DuYDsUL2TTspD-I-Z1BpRBkKRudk'
+const HARDCODED_URL = 'https://fkhoyaufehxcbrbguigz.supabase.co';
+const HARDCODED_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZraG95YXVmZWh4Y2JyYmd1aWd6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5NTE5MDQsImV4cCI6MjA5NTUyNzkwNH0.Q2smdVlK3CmxfR_DuYDsUL2TTspD-I-Z1BpRBkKRudk';
+
 // ══════════════════════════════════════════════════════════
 // ПИНЫ ПРОВЕРЯЮЩИХ
 // ══════════════════════════════════════════════════════════
 const REVIEWERS = {
-  '1111': 'Екатерина РОП',   // ← смени пин и имя
+  '1111': 'Екатерина РОП',
   '2222': 'Даниєла РОП',
   '3333': 'Антон РОП',
   '4444': 'Луиза ОК',
@@ -406,62 +431,198 @@ const REVIEWERS = {
 };
 
 // ══════════════════════════════════════════════════════════
-// SECTIONS DATA
+// SECTIONS DATA  (поле rec = совет при «Нет», good = похвала при «Да»)
 // ══════════════════════════════════════════════════════════
 const SECTIONS = [
   { id:'s1', title:'НАЧАЛО ДИАЛОГА', max:5, questions:[
-    {id:'q1_1',text:'Представился ли менеджер (назвал имя и компанию)',opts:[{l:'Да',p:2.5,c:'sel-yes'},{l:'Частично',p:1.25,c:'sel-partial'},{l:'Нет',p:0,c:'sel-no'}]},
-    {id:'q1_2',text:'Звучал ли менеджер живо, без роботизированного скрипта',opts:[{l:'Да',p:2.5,c:'sel-yes'},{l:'Частично',p:1.25,c:'sel-partial'},{l:'Нет',p:0,c:'sel-no'}]},
+    {id:'q1_1',text:'Представился ли менеджер (назвал имя и компанию)',
+      good:'🌟 Отлично! Клиент сразу понял, с кем говорит — доверие с первых секунд.',
+      recPartial:'💡 Совет: Называй и имя, и компанию — оба элемента обязательны для профессионального представления.',
+      rec:'💡 Совет: Всегда начинай с представления — «Добрый день, меня зовут [имя], компания Ikorka Shop». Это фундамент доверия.',
+      opts:[{l:'Да',p:2.5,c:'sel-yes'},{l:'Частично',p:1.25,c:'sel-partial'},{l:'Нет',p:0,c:'sel-no'}]},
+    {id:'q1_2',text:'Звучал ли менеджер живо, без роботизированного скрипта',
+      good:'🌟 Супер! Живой тон — это то, что отличает продавца от робота.',
+      recPartial:'💡 Совет: Старайся не читать скрипт дословно — говори своими словами, сохраняя суть.',
+      rec:'💡 Совет: Избегай монотонного чтения скрипта. Говори живо, с улыбкой в голосе — клиент это чувствует даже по телефону.',
+      opts:[{l:'Да',p:2.5,c:'sel-yes'},{l:'Частично',p:1.25,c:'sel-partial'},{l:'Нет',p:0,c:'sel-no'}]},
   ]},
   { id:'s2', title:'ВЫЯВЛЕНИЕ ПОТРЕБНОСТИ', max:15, questions:[
-    {id:'q2_1',text:'Задавал ли менеджер открытые вопросы',opts:[{l:'Да',p:7,c:'sel-yes'},{l:'Частично',p:3.5,c:'sel-partial'},{l:'Нет',p:0,c:'sel-no'}]},
-    {id:'q2_2',text:'Уточнял: что нравится клиенту, какую икру предпочитает, для кого покупка, что важно при выборе, объём, упаковку',opts:[{l:'Хорошо',p:8,c:'sel-yes'},{l:'Частично',p:4,c:'sel-partial'},{l:'Не выявлено',p:0,c:'sel-no'}]},
+    {id:'q2_1',text:'Задавал ли менеджер открытые вопросы',
+      good:'🌟 Отлично! Открытые вопросы — ключ к пониманию клиента.',
+      recPartial:'💡 Совет: Больше вопросов «Что», «Как», «Расскажите» — они дают развёрнутые ответы.',
+      rec:'💡 Совет: Задавай открытые вопросы — «Расскажите, для какого случая подбираете?», «Что для вас важно при выборе?». Закрытые вопросы дают только «да/нет».',
+      opts:[{l:'Да',p:7,c:'sel-yes'},{l:'Частично',p:3.5,c:'sel-partial'},{l:'Нет',p:0,c:'sel-no'}]},
+    {id:'q2_2',text:'Уточнял: что нравится клиенту, какую икру предпочитает, для кого покупка, что важно при выборе, объём, упаковку',
+      good:'🌟 Отлично! Глубокое выявление потребностей — основа точного оффера.',
+      recPartial:'💡 Совет: Уточняй все параметры: для кого икра, какой объём, предпочтения по вкусу, важность упаковки, бюджет.',
+      rec:'💡 Совет: Без выяснения потребностей оффер будет «в молоко». Уточни: для кого покупка (себе/подарок), объём, вкусовые предпочтения, важность упаковки.',
+      opts:[{l:'Хорошо',p:8,c:'sel-yes'},{l:'Частично',p:4,c:'sel-partial'},{l:'Не выявлено',p:0,c:'sel-no'}]},
   ]},
   { id:'s3', title:'АКТИВНОЕ СЛУШАНИЕ', max:10, questions:[
-    {id:'q3_1',text:'Перебивал клиента',inv:true,opts:[{l:'Да (штраф)',p:2,c:'sel-no'},{l:'Частично',p:1,c:'sel-partial'},{l:'Нет',p:0,c:'sel-yes'}]},
-    {id:'q3_2',text:'Использовал уточнения / подтверждал понимание',opts:[{l:'Да',p:2,c:'sel-yes'},{l:'Частично',p:1,c:'sel-partial'},{l:'Нет',p:0,c:'sel-no'}]},
-    {id:'q3_3',text:'Лишний шум на фоне (музыка и др.)',inv:true,opts:[{l:'Да (штраф)',p:1,c:'sel-no'},{l:'Нет',p:0,c:'sel-yes'}]},
-    {id:'q3_4',text:'Было ли резюмирование сказанного клиентом',opts:[{l:'Да',p:2.5,c:'sel-yes'},{l:'Частично',p:1.25,c:'sel-partial'},{l:'Нет',p:0,c:'sel-no'}]},
-    {id:'q3_5',text:'Резюмирование логично привело к офферу',opts:[{l:'Да',p:2.5,c:'sel-yes'},{l:'Частично',p:1.25,c:'sel-partial'},{l:'Нет',p:0,c:'sel-no'}]},
+    {id:'q3_1',text:'Перебивал клиента',inv:true,
+      good:'✅ Хорошо! Умение слушать — признак профессионала.',
+      recPartial:'💡 Совет: Тренируй выдержку паузы — дай клиенту договорить, прежде чем отвечать.',
+      rec:'💡 Совет: Перебивание разрушает доверие. Выдерживай паузу 1-2 секунды после того, как клиент замолчал, прежде чем начать говорить.',
+      opts:[{l:'Да (штраф)',p:2,c:'sel-no'},{l:'Частично',p:1,c:'sel-partial'},{l:'Нет',p:0,c:'sel-yes'}]},
+    {id:'q3_2',text:'Использовал уточнения / подтверждал понимание',
+      good:'🌟 Отлично! Активное слушание повышает доверие клиента.',
+      recPartial:'💡 Совет: Чаще используй фразы подтверждения — «Правильно ли я понял, что...»',
+      rec:'💡 Совет: Используй фразы: «Правильно ли я понял, что...», «То есть для вас важно...» — это показывает внимание и помогает избежать ошибок в подборе.',
+      opts:[{l:'Да',p:2,c:'sel-yes'},{l:'Частично',p:1,c:'sel-partial'},{l:'Нет',p:0,c:'sel-no'}]},
+    {id:'q3_3',text:'Лишний шум на фоне (музыка и др.)',inv:true,
+      good:'✅ Отлично! Тихий фон — признак уважения к клиенту.',
+      recPartial:'',
+      rec:'💡 Совет: Перед звонком убедись в тишине — выключи фоновый звук, выйди в спокойное место. Шум снижает профессиональный имидж.',
+      opts:[{l:'Да (штраф)',p:1,c:'sel-no'},{l:'Нет',p:0,c:'sel-yes'}]},
+    {id:'q3_4',text:'Было ли резюмирование сказанного клиентом',
+      good:'🌟 Хорошо! Резюмирование создаёт мост между потребностью и оффером.',
+      recPartial:'💡 Совет: Резюмируй полнее — перечисли все ключевые моменты, о которых сказал клиент.',
+      rec:'💡 Совет: Перед презентацией обязательно резюмируй: «Итак, если я правильно понял, вам нужно 500г в подарок, важна красивая упаковка...» — клиент чувствует, что его услышали.',
+      opts:[{l:'Да',p:2.5,c:'sel-yes'},{l:'Частично',p:1.25,c:'sel-partial'},{l:'Нет',p:0,c:'sel-no'}]},
+    {id:'q3_5',text:'Резюмирование логично привело к офферу',
+      good:'🌟 Отлично! Резюме + оффер = идеальная связка.',
+      recPartial:'💡 Совет: После резюме сразу делай переход: «Исходя из этого, я рекомендую именно...»',
+      rec:'💡 Совет: Резюмирование без перехода к офферу теряет ценность. После резюме сразу: «Исходя из того, что вы рассказали, рекомендую...» — не давай паузе затянуться.',
+      opts:[{l:'Да',p:2.5,c:'sel-yes'},{l:'Частично',p:1.25,c:'sel-partial'},{l:'Нет',p:0,c:'sel-no'}]},
   ]},
   { id:'s4', title:'ЗНАНИЕ ПРОДУКТА', max:10, questions:[
-    {id:'q4_1',text:'Менеджер уверенно отвечал на вопросы о продукте',opts:[{l:'Да',p:2.5,c:'sel-yes'},{l:'Частично',p:1.25,c:'sel-partial'},{l:'Нет',p:0,c:'sel-no'}]},
-    {id:'q4_2',text:'Корректно описывал характеристики / вкус / отличия видов икры',opts:[{l:'Да',p:2.5,c:'sel-yes'},{l:'Частично',p:1.25,c:'sel-partial'},{l:'Нет',p:0,c:'sel-no'}]},
+    {id:'q4_1',text:'Менеджер уверенно отвечал на вопросы о продукте',
+      good:'🌟 Отлично! Уверенный эксперт вызывает доверие и желание купить.',
+      recPartial:'💡 Совет: Доработай знание продукта — особенно в тех вопросах, где были паузы или неточности.',
+      rec:'💡 Совет: Неуверенные ответы подрывают доверие к продукту. Изучи характеристики каждого вида икры: вкус, цвет, текстуру, способ засолки, сроки хранения.',
+      opts:[{l:'Да',p:2.5,c:'sel-yes'},{l:'Частично',p:1.25,c:'sel-partial'},{l:'Нет',p:0,c:'sel-no'}]},
+    {id:'q4_2',text:'Корректно описывал характеристики / вкус / отличия видов икры',
+      good:'🌟 Отлично! Точные характеристики помогают клиенту сделать осознанный выбор.',
+      recPartial:'💡 Совет: Уточни детали по отдельным видам икры — клиенты часто спрашивают об отличиях.',
+      rec:'💡 Совет: Знай разницу между видами икры (горбуша, кета, нерка, форель) — их вкус, размер зерна, цвет. Клиенты часто сравнивают и ждут экспертного мнения.',
+      opts:[{l:'Да',p:2.5,c:'sel-yes'},{l:'Частично',p:1.25,c:'sel-partial'},{l:'Нет',p:0,c:'sel-no'}]},
   ]},
   { id:'s5', title:'ПРЕЗЕНТАЦИЯ / ОФФЕР', max:15, questions:[
-    {id:'q5_1',text:'Оффер был сделан после выявления потребностей',opts:[{l:'Да',p:4,c:'sel-yes'},{l:'Нет',p:0,c:'sel-no'}]},
-    {id:'q5_2',text:'Оффер подходил под запрос клиента',opts:[{l:'Да',p:5,c:'sel-yes'},{l:'Частично',p:2.5,c:'sel-partial'},{l:'Нет',p:0,c:'sel-no'}]},
-    {id:'q5_3',text:'Предложено несколько вариантов (ветка)',opts:[{l:'Да',p:3,c:'sel-yes'},{l:'Нет',p:0,c:'sel-no'}]},
-    {id:'q5_4',text:'Менеджер звучал уверенно при презентации',opts:[{l:'Да',p:3,c:'sel-yes'},{l:'Частично',p:1.5,c:'sel-partial'},{l:'Нет',p:0,c:'sel-no'}]},
+    {id:'q5_1',text:'Оффер был сделан после выявления потребностей',
+      good:'🌟 Хорошо! Правильная последовательность — залог точного попадания в запрос.',
+      recPartial:'',
+      rec:'💡 Совет: Никогда не делай оффер до выявления потребностей — сначала узнай, что нужно клиенту, иначе предложение будет мимо цели.',
+      opts:[{l:'Да',p:4,c:'sel-yes'},{l:'Нет',p:0,c:'sel-no'}]},
+    {id:'q5_2',text:'Оффер подходил под запрос клиента',
+      good:'🌟 Отлично! Персональный оффер — именно то, что нужно клиенту.',
+      recPartial:'💡 Совет: Убедись, что оффер максимально отвечает на конкретные слова и запрос клиента.',
+      rec:'💡 Совет: Оффер должен отвечать на слова клиента. Если он сказал «подарок маме» — акцент на упаковку. Если «для себя» — на вкус и объём.',
+      opts:[{l:'Да',p:5,c:'sel-yes'},{l:'Частично',p:2.5,c:'sel-partial'},{l:'Нет',p:0,c:'sel-no'}]},
+    {id:'q5_3',text:'Предложено несколько вариантов (ветка)',
+      good:'🌟 Хорошо! Выбор из нескольких вариантов увеличивает конверсию.',
+      recPartial:'',
+      rec:'💡 Совет: Всегда предлагай 2-3 варианта с разным объёмом или ценой — это даёт клиенту ощущение выбора и повышает шанс покупки.',
+      opts:[{l:'Да',p:3,c:'sel-yes'},{l:'Нет',p:0,c:'sel-no'}]},
+    {id:'q5_4',text:'Менеджер звучал уверенно при презентации',
+      good:'🌟 Отлично! Уверенная презентация вызывает желание купить.',
+      recPartial:'💡 Совет: Работай над уверенностью в голосе — клиент чувствует малейшее сомнение.',
+      rec:'💡 Совет: Клиент чувствует неуверенность в голосе. Практикуй презентацию продукта вслух до звонков — это формирует уверенность.',
+      opts:[{l:'Да',p:3,c:'sel-yes'},{l:'Частично',p:1.5,c:'sel-partial'},{l:'Нет',p:0,c:'sel-no'}]},
   ]},
   { id:'s6', title:'РАБОТА С ВОЗРАЖЕНИЯМИ', max:15, questions:[
-    {id:'q6_1',text:'Выяснил истинную причину возражения',opts:[{l:'Да',p:5,c:'sel-yes'},{l:'Частично',p:2.5,c:'sel-partial'},{l:'Нет',p:0,c:'sel-no'}]},
-    {id:'q6_2',text:'Не уходил сразу в перезвон после «Подумаю / Посоветуюсь»',opts:[{l:'Да',p:2.5,c:'sel-yes'},{l:'Нет',p:0,c:'sel-no'}]},
-    {id:'q6_3',text:'Менеджер спорил с клиентом',inv:true,opts:[{l:'Да (штраф)',p:2,c:'sel-no'},{l:'Нет',p:0,c:'sel-yes'}]},
-    {id:'q6_4',text:'После возражения «Дорого» — обработал возражение',opts:[{l:'Да',p:5,c:'sel-yes'},{l:'Частично',p:2.5,c:'sel-partial'},{l:'Нет',p:0,c:'sel-no'},{l:'Н/А',p:null,c:'sel-na'}]},
+    {id:'q6_1',text:'Выяснил истинную причину возражения',
+      good:'🌟 Хорошо! Понимание истинного возражения — ключ к его закрытию.',
+      recPartial:'💡 Совет: Копай глубже — первое возражение редко бывает настоящим.',
+      rec:'💡 Совет: При возражении сначала присоединись, потом уточни: «Понимаю вас. Что именно вас останавливает?» — первое возражение редко настоящее.',
+      opts:[{l:'Да',p:5,c:'sel-yes'},{l:'Частично',p:2.5,c:'sel-partial'},{l:'Нет',p:0,c:'sel-no'}]},
+    {id:'q6_2',text:'Не уходил сразу в перезвон после «Подумаю / Посоветуюсь»',
+      good:'🌟 Отлично! Работа с «Подумаю» вместо перезвона повышает конверсию в разы.',
+      recPartial:'',
+      rec:'💡 Совет: При «Подумаю» не сдавайся сразу — спроси: «Что именно хотите обдумать?» и попробуй закрыть возражение здесь и сейчас.',
+      opts:[{l:'Да',p:2.5,c:'sel-yes'},{l:'Нет',p:0,c:'sel-no'}]},
+    {id:'q6_3',text:'Менеджер спорил с клиентом',inv:true,
+      good:'✅ Хорошо! Отсутствие споров — признак зрелого продавца.',
+      recPartial:'💡 Совет: Минимизируй полемику — используй технику присоединения вместо контраргументов.',
+      rec:'💡 Совет: Никогда не спорь с клиентом. Используй технику присоединения: «Я понимаю вашу точку зрения, и вместе с тем...» — спор убивает продажу.',
+      opts:[{l:'Да (штраф)',p:2,c:'sel-no'},{l:'Нет',p:0,c:'sel-yes'}]},
+    {id:'q6_4',text:'После возражения «Дорого» — обработал возражение',
+      good:'🌟 Отлично! Правильная обработка «Дорого» сохраняет маржу и сделку.',
+      recPartial:'💡 Совет: Усиль обработку — не ограничивайся одним аргументом ценности.',
+      rec:'💡 Совет: На «Дорого» не снижай цену сразу. Сначала усиль ценность: «Давайте я расскажу, что входит в эту стоимость...» Скидка — крайний инструмент.',
+      opts:[{l:'Да',p:5,c:'sel-yes'},{l:'Частично',p:2.5,c:'sel-partial'},{l:'Нет',p:0,c:'sel-no'},{l:'Н/А',p:null,c:'sel-na'}]},
   ]},
   { id:'s7', title:'РАБОТА С ЦЕНОЙ', max:10, questions:[
-    {id:'q7_1',text:'Цена озвучена после ценности, а не сразу',opts:[{l:'Да',p:4,c:'sel-yes'},{l:'Нет',p:0,c:'sel-no'}]},
-    {id:'q7_2',text:'Объяснялась выгода / ценность продукта',opts:[{l:'Да',p:3,c:'sel-yes'},{l:'Частично',p:1.5,c:'sel-partial'},{l:'Нет',p:0,c:'sel-no'}]},
-    {id:'q7_3',text:'Скидка озвучена понятно (в грн или %). Макс. 12% для постоянных',opts:[{l:'Да',p:3,c:'sel-yes'},{l:'Нет',p:0,c:'sel-no'},{l:'Н/А',p:null,c:'sel-na'}]},
+    {id:'q7_1',text:'Цена озвучена после ценности, а не сразу',
+      good:'🌟 Хорошо! Ценность до цены — классика продаж.',
+      recPartial:'',
+      rec:'💡 Совет: Цена должна звучать как логичное завершение описания ценности. Сначала расскажи о продукте — тогда цена воспринимается как обоснованная.',
+      opts:[{l:'Да',p:4,c:'sel-yes'},{l:'Нет',p:0,c:'sel-no'}]},
+    {id:'q7_2',text:'Объяснялась выгода / ценность продукта',
+      good:'🌟 Отлично! Обоснование ценности снижает ценовое сопротивление.',
+      recPartial:'💡 Совет: Добавь больше аргументов ценности — натуральность, способ засолки, упаковка, гарантия.',
+      rec:'💡 Совет: Всегда объясняй, за что клиент платит: натуральный состав, ручная фасовка, свежесть, подарочная упаковка, гарантия качества.',
+      opts:[{l:'Да',p:3,c:'sel-yes'},{l:'Частично',p:1.5,c:'sel-partial'},{l:'Нет',p:0,c:'sel-no'}]},
+    {id:'q7_3',text:'Скидка озвучена понятно (в грн или %). Макс. 12% для постоянных',
+      good:'🌟 Хорошо! Чёткая подача скидки не создаёт путаницы.',
+      recPartial:'💡 Совет: Озвучивай скидку конкретно — в гривнах или процентах, без двусмысленности.',
+      rec:'💡 Совет: Скидку называй чётко — в гривнах или процентах. Помни: максимум 12% для постоянных клиентов без согласования с руководством.',
+      opts:[{l:'Да',p:3,c:'sel-yes'},{l:'Нет',p:0,c:'sel-no'},{l:'Н/А',p:null,c:'sel-na'}]},
   ]},
   { id:'s8', title:'ЭМОЦИОНАЛЬНАЯ ПОДАЧА', max:2.5, questions:[
-    {id:'q8_1',text:'Менеджер говорил с энтузиазмом, не монотонно',opts:[{l:'Да',p:1.5,c:'sel-yes'},{l:'Частично',p:0.75,c:'sel-partial'},{l:'Нет',p:0,c:'sel-no'}]},
-    {id:'q8_2',text:'Клиент чувствовал заинтересованность менеджера',opts:[{l:'Да',p:1,c:'sel-yes'},{l:'Частично',p:0.5,c:'sel-partial'},{l:'Нет',p:0,c:'sel-no'}]},
+    {id:'q8_1',text:'Менеджер говорил с энтузиазмом, не монотонно',
+      good:'🌟 Отлично! Энтузиазм в голосе заряжает клиента на покупку.',
+      recPartial:'💡 Совет: Работай над интонацией — слушай записи своих звонков и отмечай монотонные участки.',
+      rec:'💡 Совет: Послушай запись разговора — монотонная речь отталкивает. Работай с интонацией, паузами, темпом речи. Подъём голоса на ключевых словах усиливает интерес.',
+      opts:[{l:'Да',p:1.5,c:'sel-yes'},{l:'Частично',p:0.75,c:'sel-partial'},{l:'Нет',p:0,c:'sel-no'}]},
+    {id:'q8_2',text:'Клиент чувствовал заинтересованность менеджера',
+      good:'🌟 Хорошо! Клиент, который чувствует внимание, охотнее покупает.',
+      recPartial:'💡 Совет: Называй клиента по имени, реагируй на его слова — это создаёт ощущение индивидуального подхода.',
+      rec:'💡 Совет: Показывай искреннюю заинтересованность — называй клиента по имени, реагируй на его слова, не торопись и не звучи «на автопилоте».',
+      opts:[{l:'Да',p:1,c:'sel-yes'},{l:'Частично',p:0.5,c:'sel-partial'},{l:'Нет',p:0,c:'sel-no'}]},
   ]},
   { id:'s9', title:'ДОПРОДАЖА', max:10, questions:[
-    {id:'q9_1',text:'Если клиент оформил заказ — предложен дополнительный товар',opts:[{l:'Да',p:5,c:'sel-yes'},{l:'Нет',p:0,c:'sel-no'},{l:'Н/А',p:null,c:'sel-na'}]},
-    {id:'q9_2',text:'Предложен второй вариант допродажи (как альтернатива на выбор)',opts:[{l:'Да',p:5,c:'sel-yes'},{l:'Нет',p:0,c:'sel-no'},{l:'Н/А',p:null,c:'sel-na'}]},
+    {id:'q9_1',text:'Если клиент оформил заказ — предложен дополнительный товар',
+      good:'🌟 Отлично! Допродажа — простой способ увеличить сумму заказа.',
+      recPartial:'',
+      rec:'💡 Совет: После оформления заказа всегда предлагай сопутствующий товар: «К этому отлично подойдёт...» или «Многие берут вместе с этим...» — это повышает средний чек.',
+      opts:[{l:'Да',p:5,c:'sel-yes'},{l:'Нет',p:0,c:'sel-no'},{l:'Н/А',p:null,c:'sel-na'}]},
+    {id:'q9_2',text:'Предложен второй вариант допродажи (как альтернатива на выбор)',
+      good:'🌟 Хорошо! Второй вариант допродажи удваивает шансы на успех.',
+      recPartial:'',
+      rec:'💡 Совет: Если первая допродажа не сработала — предложи альтернативу: другой объём, другой вид или праздничную упаковку. Два варианта дают второй шанс.',
+      opts:[{l:'Да',p:5,c:'sel-yes'},{l:'Нет',p:0,c:'sel-no'},{l:'Н/А',p:null,c:'sel-na'}]},
   ]},
   { id:'s10', title:'ЗАКРЫТИЕ И ИНФОРМИРОВАНИЕ', max:10, questions:[
-    {id:'q10_1',text:'Было ли ведение к покупке / закрытие сделки',opts:[{l:'Да',p:2,c:'sel-yes'},{l:'Частично',p:1,c:'sel-partial'},{l:'Нет',p:0,c:'sel-no'}]},
-    {id:'q10_2',text:'Зафиксирован следующий шаг, если заказа не было',opts:[{l:'Да',p:1,c:'sel-yes'},{l:'Нет',p:0,c:'sel-no'},{l:'Н/А',p:null,c:'sel-na'}]},
-    {id:'q10_3',text:'Перезвон оправдан (не слив без попытки дожать)',opts:[{l:'Да',p:1.5,c:'sel-yes'},{l:'Нет',p:0,c:'sel-no'},{l:'Н/А',p:null,c:'sel-na'}]},
-    {id:'q10_4',text:'Перезвон зафиксирован с конкретной датой',opts:[{l:'Да',p:1,c:'sel-yes'},{l:'Нет',p:0,c:'sel-no'},{l:'Н/А',p:null,c:'sel-na'}]},
-    {id:'q10_5',text:'Проговорена комиссия Новой Почты',opts:[{l:'Да',p:1,c:'sel-yes'},{l:'Нет',p:0,c:'sel-no'},{l:'Н/А',p:null,c:'sel-na'}]},
-    {id:'q10_6',text:'Озвучены условия доставки',opts:[{l:'Да',p:1,c:'sel-yes'},{l:'Частично',p:0.5,c:'sel-partial'},{l:'Нет',p:0,c:'sel-no'}]},
-    {id:'q10_7',text:'Проговорена фиксация боя на почте',opts:[{l:'Да',p:1,c:'sel-yes'},{l:'Нет',p:0,c:'sel-no'},{l:'Н/А',p:null,c:'sel-na'}]},
-    {id:'q10_8',text:'Полностью донесена информация по заказу',opts:[{l:'Да',p:1.5,c:'sel-yes'},{l:'Частично',p:0.75,c:'sel-partial'},{l:'Нет',p:0,c:'sel-no'}]},
+    {id:'q10_1',text:'Было ли ведение к покупке / закрытие сделки',
+      good:'🌟 Отлично! Активное закрытие — обязательный навык менеджера.',
+      recPartial:'💡 Совет: Закрытие должно быть более настойчивым — предложи оформить прямо сейчас.',
+      rec:'💡 Совет: Не жди, пока клиент сам примет решение — помогай: «Оформляем?» или «Давайте зафиксируем?» Активное закрытие повышает конверсию.',
+      opts:[{l:'Да',p:2,c:'sel-yes'},{l:'Частично',p:1,c:'sel-partial'},{l:'Нет',p:0,c:'sel-no'}]},
+    {id:'q10_2',text:'Зафиксирован следующий шаг, если заказа не было',
+      good:'🌟 Хорошо! Зафиксированный следующий шаг сохраняет клиента.',
+      recPartial:'',
+      rec:'💡 Совет: Если заказа нет — зафиксируй следующий шаг: что нужно уточнить клиенту, когда перезвонить. Без этого клиент теряется.',
+      opts:[{l:'Да',p:1,c:'sel-yes'},{l:'Нет',p:0,c:'sel-no'},{l:'Н/А',p:null,c:'sel-na'}]},
+    {id:'q10_3',text:'Перезвон оправдан (не слив без попытки дожать)',
+      good:'🌟 Хорошо! Обоснованный перезвон не теряет клиента.',
+      recPartial:'',
+      rec:'💡 Совет: Перезвон — это не способ избежать сложного разговора. Перед тем как предложить перезвонить, примени все доступные техники закрытия.',
+      opts:[{l:'Да',p:1.5,c:'sel-yes'},{l:'Нет',p:0,c:'sel-no'},{l:'Н/А',p:null,c:'sel-na'}]},
+    {id:'q10_4',text:'Перезвон зафиксирован с конкретной датой',
+      good:'🌟 Хорошо! Конкретная дата перезвона = реальный шанс на сделку.',
+      recPartial:'',
+      rec:'💡 Совет: Договаривайся о конкретном времени: «Вам удобнее завтра в 11 или в 14?» — открытый перезвон «позвоню как-нибудь» равно потерянный клиент.',
+      opts:[{l:'Да',p:1,c:'sel-yes'},{l:'Нет',p:0,c:'sel-no'},{l:'Н/А',p:null,c:'sel-na'}]},
+    {id:'q10_5',text:'Проговорена комиссия Новой Почты',
+      good:'🌟 Хорошо! Прозрачность условий = довольный клиент при получении.',
+      recPartial:'',
+      rec:'💡 Совет: Всегда предупреждай о комиссии Новой Почты при наложке — неожиданная комиссия при получении создаёт негатив и возвраты.',
+      opts:[{l:'Да',p:1,c:'sel-yes'},{l:'Нет',p:0,c:'sel-no'},{l:'Н/А',p:null,c:'sel-na'}]},
+    {id:'q10_6',text:'Озвучены условия доставки',
+      good:'🌟 Хорошо! Полная информация по доставке снижает количество вопросов.',
+      recPartial:'💡 Совет: Проговори все детали доставки: сроки, стоимость, способ оплаты.',
+      rec:'💡 Совет: Чётко проговори условия доставки: сроки, стоимость, способ оплаты. Клиент должен точно знать, чего ожидать.',
+      opts:[{l:'Да',p:1,c:'sel-yes'},{l:'Частично',p:0.5,c:'sel-partial'},{l:'Нет',p:0,c:'sel-no'}]},
+    {id:'q10_7',text:'Проговорена фиксация боя на почте',
+      good:'🌟 Хорошо! Предупреждение о фиксации боя — это профессионализм.',
+      recPartial:'',
+      rec:'💡 Совет: Обязательно предупреждай о необходимости фиксации боя при получении на почте — это защищает и клиента, и магазин от споров.',
+      opts:[{l:'Да',p:1,c:'sel-yes'},{l:'Нет',p:0,c:'sel-no'},{l:'Н/А',p:null,c:'sel-na'}]},
+    {id:'q10_8',text:'Полностью донесена информация по заказу',
+      good:'🌟 Отлично! Клиент ушёл с полным пониманием — это снижает вопросы после.',
+      recPartial:'💡 Совет: В конце повтори ключевые детали заказа — что, сколько, куда, когда.',
+      rec:'💡 Совет: В конце разговора кратко повтори ключевые детали заказа: что, сколько, куда, когда. Клиент должен уйти с чётким пониманием.',
+      opts:[{l:'Да',p:1.5,c:'sel-yes'},{l:'Частично',p:0.75,c:'sel-partial'},{l:'Нет',p:0,c:'sel-no'}]},
   ]},
 ];
 
@@ -486,36 +647,20 @@ async function sbFetch(path, method='GET', body=null){
   const ct = res.headers.get('content-type')||'';
   return ct.includes('json') ? res.json() : null;
 }
-
-async function loadRecords(){
-  try{
-    const data = await sbFetch('qa_records?select=*&order=date.desc,created_at.desc');
-    allRecords = data || [];
-  }catch(e){ toast('Ошибка загрузки: '+e.message,'err'); allRecords=[]; }
-}
-
-async function insertRecord(rec){
-  return sbFetch('qa_records', 'POST', rec);
-}
-
-async function updateRecord(id, rec){
-  return sbFetch('qa_records?id=eq.'+id, 'PATCH', rec);
-}
-
-async function deleteRecordDB(id){
-  return sbFetch('qa_records?id=eq.'+id, 'DELETE');
-}
+async function loadRecords(){ try{ const data=await sbFetch('qa_records?select=*&order=date.desc,created_at.desc'); allRecords=data||[]; }catch(e){ toast('Ошибка загрузки: '+e.message,'err'); allRecords=[]; } }
+async function insertRecord(rec){ return sbFetch('qa_records','POST',rec); }
+async function updateRecord(id,rec){ return sbFetch('qa_records?id=eq.'+id,'PATCH',rec); }
+async function deleteRecordDB(id){ return sbFetch('qa_records?id=eq.'+id,'DELETE'); }
 
 // ══════════════════════════════════════════════════════════
 // SETUP
 // ══════════════════════════════════════════════════════════
 function saveSetup(){
-  const url = document.getElementById('setup-url').value.trim().replace(/\/$/, '');
-  const key = document.getElementById('setup-key').value.trim();
-  if(!url || !key){ toast('Заполни оба поля!','err'); return; }
-  localStorage.setItem('sb_url', url);
-  localStorage.setItem('sb_key', key);
-  SB_URL = url; SB_KEY = key;
+  const url=document.getElementById('setup-url').value.trim().replace(/\/$/,'');
+  const key=document.getElementById('setup-key').value.trim();
+  if(!url||!key){ toast('Заполни оба поля!','err'); return; }
+  localStorage.setItem('sb_url',url); localStorage.setItem('sb_key',key);
+  SB_URL=url; SB_KEY=key;
   document.getElementById('setup-screen').style.display='none';
   document.getElementById('login-screen').style.display='block';
   toast('✅ Настройки сохранены!','ok');
@@ -525,25 +670,23 @@ function saveSetup(){
 // PIN / AUTH
 // ══════════════════════════════════════════════════════════
 function pinPress(v){
-  if(v==='clear'){ pinBuffer=''; }
-  else if(v==='del'){ pinBuffer=pinBuffer.slice(0,-1); }
-  else if(pinBuffer.length<4){ pinBuffer+=v; }
+  if(v==='clear') pinBuffer='';
+  else if(v==='del') pinBuffer=pinBuffer.slice(0,-1);
+  else if(pinBuffer.length<4) pinBuffer+=v;
   updatePinDisplay();
   if(pinBuffer.length===4) setTimeout(checkPin,120);
 }
-
 function updatePinDisplay(){
   for(let i=0;i<4;i++){
     const d=document.getElementById('pd'+i);
-    d.textContent = i<pinBuffer.length ? '●' : '·';
-    d.classList.toggle('filled', i<pinBuffer.length);
+    d.textContent=i<pinBuffer.length?'●':'·';
+    d.classList.toggle('filled',i<pinBuffer.length);
   }
 }
-
 function checkPin(){
-  const name = REVIEWERS[pinBuffer];
+  const name=REVIEWERS[pinBuffer];
   if(name){
-    currentUser = name;
+    currentUser=name;
     document.getElementById('pin-err').textContent='';
     document.getElementById('login-screen').style.display='none';
     document.getElementById('app-screen').style.display='block';
@@ -552,11 +695,9 @@ function checkPin(){
     toast('Добро пожаловать, '+name+'!','ok');
   } else {
     document.getElementById('pin-err').textContent='Неверный пин-код';
-    pinBuffer='';
-    updatePinDisplay();
+    pinBuffer=''; updatePinDisplay();
   }
 }
-
 function logout(){
   currentUser=null; pinBuffer='';
   document.getElementById('app-screen').style.display='none';
@@ -566,7 +707,7 @@ function logout(){
 }
 
 // ══════════════════════════════════════════════════════════
-// FORM
+// FORM RENDER
 // ══════════════════════════════════════════════════════════
 function renderForm(){
   const wrap=document.getElementById('sections-wrap');
@@ -597,25 +738,118 @@ function renderQ(q){
       const pl=o.p===null?'':o.p===0?' (0%)':` (${o.p}%)`;
       return `<div class="opt ${sel}" onclick="pick('${q.id}',${i})">${o.l}${pl}</div>`;
     }).join('')}</div>
+    <div class="q-feedback" id="fb_${q.id}"></div>
   </div>`;
 }
 
-function pick(qId,oi){
-  let q=null; SECTIONS.forEach(s=>s.questions.forEach(qq=>{if(qq.id===qId)q=qq;}));
+// ══════════════════════════════════════════════════════════
+// PICK + INLINE FEEDBACK
+// ══════════════════════════════════════════════════════════
+function pick(qId, oi){
+  let q=null;
+  SECTIONS.forEach(s=>s.questions.forEach(qq=>{ if(qq.id===qId) q=qq; }));
   if(!q) return;
+
   if(formState[qId]&&formState[qId].oi===oi) delete formState[qId];
-  else formState[qId]={p:q.opts[oi].p,oi,excluded:q.opts[oi].p===null};
+  else formState[qId]={p:q.opts[oi].p, oi, excluded:q.opts[oi].p===null};
+
+  // re-render opts
   const row=document.getElementById('qrow_'+qId);
-  if(row) row.querySelector('.opts').innerHTML=q.opts.map((o,i)=>{
-    const sel=formState[qId]&&formState[qId].oi===i?o.c:'';
-    const pl=o.p===null?'':o.p===0?' (0%)':` (${o.p}%)`;
-    return `<div class="opt ${sel}" onclick="pick('${qId}',${i})">${o.l}${pl}</div>`;
-  }).join('');
+  if(row){
+    row.querySelector('.opts').innerHTML=q.opts.map((o,i)=>{
+      const sel=formState[qId]&&formState[qId].oi===i?o.c:'';
+      const pl=o.p===null?'':o.p===0?' (0%)':` (${o.p}%)`;
+      return `<div class="opt ${sel}" onclick="pick('${qId}',${i})">${o.l}${pl}</div>`;
+    }).join('');
+
+    // show inline feedback
+    const fb=document.getElementById('fb_'+qId);
+    if(fb){
+      if(!formState[qId]){
+        fb.style.display='none'; fb.textContent='';
+      } else {
+        const st=formState[qId];
+        const opt=q.opts[st.oi];
+        fb.style.display='';
+
+        if(opt.p===null){
+          // Н/А
+          fb.className='q-feedback fb-na';
+          fb.textContent='ℹ️ Отмечено как неприменимо — не учитывается в итоговой оценке.';
+        } else if(opt.c==='sel-yes' && !q.inv){
+          fb.className='q-feedback fb-good';
+          fb.textContent=q.good||'✅ Отлично!';
+        } else if(opt.c==='sel-yes' && q.inv){
+          // inv=true, sel-yes означает "Нет" (штраф не получен)
+          fb.className='q-feedback fb-good';
+          fb.textContent=q.good||'✅ Хорошо!';
+        } else if(opt.c==='sel-no' && !q.inv){
+          fb.className='q-feedback fb-warn';
+          fb.textContent=q.rec||'💡 Обрати внимание на этот пункт.';
+        } else if(opt.c==='sel-no' && q.inv){
+          // штраф
+          fb.className='q-feedback fb-warn';
+          fb.textContent=q.rec||'💡 Обрати внимание — это снижает оценку.';
+        } else if(opt.c==='sel-partial'){
+          fb.className='q-feedback fb-partial';
+          fb.textContent=q.recPartial||'💡 Есть потенциал для улучшения по этому пункту.';
+        } else {
+          fb.className='q-feedback fb-warn';
+          fb.textContent=q.rec||'💡 Обрати внимание на этот пункт.';
+        }
+      }
+    }
+  }
   updateScores();
 }
 
 function toggleSec(id){ document.getElementById('sec_'+id).classList.toggle('collapsed'); }
 
+// ══════════════════════════════════════════════════════════
+// AUTO-GENERATE ANALYSIS
+// ══════════════════════════════════════════════════════════
+function autoGenAnalysis(){
+  const strong=[], weak=[], errors=[], tips=[];
+
+  SECTIONS.forEach(sec=>{
+    sec.questions.forEach(q=>{
+      const s=formState[q.id]; if(!s) return;
+      const opt=q.opts[s.oi];
+      if(opt.p===null) return; // Н/А
+
+      const isPositive = q.inv
+        ? opt.c==='sel-yes'            // inv: sel-yes = "Нет штрафа" = хорошо
+        : opt.c==='sel-yes';
+      const isNegative = q.inv
+        ? opt.c==='sel-no'             // inv: sel-no = "Да (штраф)" = плохо
+        : opt.c==='sel-no';
+      const isPartial = opt.c==='sel-partial';
+
+      if(isPositive){
+        if(q.good) strong.push('• ' + q.good.replace(/^[🌟✅]+\s*/,''));
+      }
+      if(isNegative){
+        errors.push('• ' + q.text);
+        if(q.rec) tips.push(q.rec);
+      }
+      if(isPartial){
+        weak.push('• ' + q.text + ' — выполнено частично');
+        if(q.recPartial) tips.push(q.recPartial);
+      }
+    });
+  });
+
+  if(strong.length) document.getElementById('c-strong').value=strong.join('\n');
+  if(weak.length) document.getElementById('c-weak').value=weak.join('\n');
+  if(errors.length) document.getElementById('c-errors').value=errors.join('\n');
+  if(tips.length) document.getElementById('c-tips').value=tips.join('\n');
+
+  toast('✅ Анализ сгенерирован!','ok');
+}
+
+// ══════════════════════════════════════════════════════════
+// SCORE CALC
+// ══════════════════════════════════════════════════════════
 function calcScore(){
   let e=0,m=0;
   SECTIONS.forEach(sec=>{
@@ -673,14 +907,8 @@ async function saveRecord(){
     reviewer:currentUser
   };
   try{
-    if(editingId){
-      await updateRecord(editingId, rec);
-      toast('✅ Оценка обновлена!','ok');
-      editingId=null;
-    } else {
-      await insertRecord(rec);
-      toast(`✅ Сохранено! ${mgr} — ${pct.toFixed(1)}%`,'ok');
-    }
+    if(editingId){ await updateRecord(editingId,rec); toast('✅ Оценка обновлена!','ok'); editingId=null; }
+    else { await insertRecord(rec); toast(`✅ Сохранено! ${mgr} — ${pct.toFixed(1)}%`,'ok'); }
     resetForm();
   }catch(e){ toast('Ошибка: '+e.message,'err'); }
   btn.disabled=false; btn.textContent='💾 Сохранить оценку';
@@ -703,7 +931,6 @@ async function renderHistory(){
   const fLvl=document.getElementById('h-level').value;
   const fRev=document.getElementById('h-reviewer').value;
   const fMon=document.getElementById('h-month').value;
-
   const mgrs=[...new Set(allRecords.map(r=>r.manager))].sort();
   const revs=[...new Set(allRecords.map(r=>r.reviewer).filter(Boolean))].sort();
   const mgrSel=document.getElementById('h-mgr');
@@ -712,7 +939,6 @@ async function renderHistory(){
   const revSel=document.getElementById('h-reviewer');
   const curRev=revSel.value;
   revSel.innerHTML='<option value="">Все проверяющие</option>'+revs.map(r=>`<option value="${r}"${r===curRev?' selected':''}>${r}</option>`).join('');
-
   let filtered=allRecords.filter(r=>{
     if(fMgr&&r.manager!==fMgr) return false;
     if(fLvl&&r.level!==fLvl) return false;
@@ -720,16 +946,12 @@ async function renderHistory(){
     if(fMon&&!r.date.startsWith(fMon)) return false;
     return true;
   });
-
   const list=document.getElementById('history-list');
   if(!filtered.length){list.innerHTML='<div class="empty">Нет записей 🔍</div>';return;}
   list.innerHTML=filtered.map(r=>`
     <div class="hcard" onclick="openRecord('${r.id}')">
       <div class="hcard-top">
-        <div>
-          <div class="hcard-name">${r.manager}</div>
-          <div class="hcard-meta">${formatDate(r.date)} · ${r.reviewer||'—'}</div>
-        </div>
+        <div><div class="hcard-name">${r.manager}</div><div class="hcard-meta">${formatDate(r.date)} · ${r.reviewer||'—'}</div></div>
         <div class="hcard-right">
           <div class="hcard-score ${r.level}">${parseFloat(r.score).toFixed(1)}%</div>
           <button class="hcard-del" onclick="deleteRecord(event,'${r.id}')">✕</button>
@@ -794,6 +1016,7 @@ function editRecord(id){
     document.getElementById('c-tips').value=r.comments.tips||'';
   }
   renderForm();
+  // restore selections + feedback
   SECTIONS.forEach(sec=>sec.questions.forEach(q=>{
     const s=formState[q.id]; if(!s) return;
     const row=document.getElementById('qrow_'+q.id); if(!row) return;
@@ -802,6 +1025,17 @@ function editRecord(id){
       const pl=o.p===null?'':o.p===0?' (0%)':` (${o.p}%)`;
       return `<div class="opt ${sel}" onclick="pick('${q.id}',${i})">${o.l}${pl}</div>`;
     }).join('');
+    // show saved feedback
+    const fb=document.getElementById('fb_'+q.id);
+    if(fb){
+      const opt=q.opts[s.oi];
+      fb.style.display='';
+      if(opt.p===null){ fb.className='q-feedback fb-na'; fb.textContent='ℹ️ Отмечено как неприменимо.'; }
+      else if(opt.c==='sel-yes'){ fb.className='q-feedback fb-good'; fb.textContent=q.good||'✅ Отлично!'; }
+      else if(opt.c==='sel-no' && !q.inv){ fb.className='q-feedback fb-warn'; fb.textContent=q.rec||'💡 Обрати внимание.'; }
+      else if(opt.c==='sel-no' && q.inv){ fb.className='q-feedback fb-warn'; fb.textContent=q.rec||'💡 Обрати внимание.'; }
+      else if(opt.c==='sel-partial'){ fb.className='q-feedback fb-partial'; fb.textContent=q.recPartial||'💡 Есть потенциал для улучшения.'; }
+    }
   }));
   updateScores();
   showPage('form');
@@ -856,7 +1090,6 @@ function showPage(id){
   if(id==='history') renderHistory();
   if(id==='stats') renderStats();
 }
-
 function getLevel(p){ return p>=85?'strong':p>=65?'medium':'weak'; }
 function getLevelLabel(l){ return l==='strong'?'🏆 Сильный':l==='medium'?'📈 Средний':'⚠️ Слабый'; }
 function formatDate(d){ if(!d) return ''; const p=d.split('-'); return `${p[2]}.${p[1]}.${p[0]}`; }
@@ -872,116 +1105,64 @@ function toast(msg,type='ok'){
 // ══════════════════════════════════════════════════════════
 // TRANSCRIPTION
 // ══════════════════════════════════════════════════════════
-let selectedFile = null;
-
+let selectedFile=null;
 function onFileSelect(input){
-  selectedFile = input.files[0];
-  if(!selectedFile) return;
-  const name = selectedFile.name.length > 30 ? selectedFile.name.substring(0,27)+'...' : selectedFile.name;
-  document.getElementById('upload-text').textContent = name;
-  document.getElementById('upload-label').style.borderColor = 'var(--gold)';
-  document.getElementById('upload-label').style.color = 'var(--text)';
-  document.getElementById('transcribe-btn').disabled = false;
+  selectedFile=input.files[0]; if(!selectedFile) return;
+  const name=selectedFile.name.length>30?selectedFile.name.substring(0,27)+'...':selectedFile.name;
+  document.getElementById('upload-text').textContent=name;
+  document.getElementById('upload-label').style.borderColor='var(--gold)';
+  document.getElementById('upload-label').style.color='var(--text)';
+  document.getElementById('transcribe-btn').disabled=false;
 }
-
 async function transcribeAudio(){
   if(!selectedFile){ toast('Сначала загрузи файл!','err'); return; }
-  const btn = document.getElementById('transcribe-btn');
-  const status = document.getElementById('transcribe-status');
-  btn.disabled = true; btn.textContent = '⏳ Загрузка...';
-  status.textContent = 'Загружаем файл...';
-
+  const btn=document.getElementById('transcribe-btn');
+  const status=document.getElementById('transcribe-status');
+  btn.disabled=true; btn.textContent='⏳ Загрузка...'; status.textContent='Загружаем файл...';
   try{
-    // Step 1: Upload file
-    const uploadRes = await fetch('https://api.assemblyai.com/v2/upload', {
-      method: 'POST',
-      headers: {'authorization': '89f3d35d26254d6ab41ef13204bd7e15'},
-      body: selectedFile
-    });
-    const uploadData = await uploadRes.json();
+    const uploadRes=await fetch('https://api.assemblyai.com/v2/upload',{method:'POST',headers:{'authorization':ASSEMBLY_KEY},body:selectedFile});
+    const uploadData=await uploadRes.json();
     if(!uploadData.upload_url) throw new Error('Ошибка загрузки файла');
-    
-    status.textContent = 'Отправляем на транскрибацию...';
-    btn.textContent = '⏳ Транскрибация...';
-
-    // Step 2: Start transcription with speaker diarization
-    const transcriptRes = await fetch('https://api.assemblyai.com/v2/transcript', {
-      method: 'POST',
-      headers: {'authorization': '89f3d35d26254d6ab41ef13204bd7e15', 'content-type': 'application/json'},
-      body: JSON.stringify({
-        audio_url: uploadData.upload_url,
-        speech_models: ['universal-3-pro', 'universal-2'],
-        speaker_labels: true,
-        language_detection: true
-      })
-    });
-    const transcriptData = await transcriptRes.json();
-    const transcriptId = transcriptData.id;
+    status.textContent='Отправляем на транскрибацию...'; btn.textContent='⏳ Транскрибация...';
+    const transcriptRes=await fetch('https://api.assemblyai.com/v2/transcript',{method:'POST',headers:{'authorization':ASSEMBLY_KEY,'content-type':'application/json'},body:JSON.stringify({audio_url:uploadData.upload_url,speaker_labels:true,language_detection:true})});
+    const transcriptData=await transcriptRes.json();
+    const transcriptId=transcriptData.id;
     if(!transcriptId) throw new Error('Ошибка запуска транскрибации');
-
-    status.textContent = 'Обрабатываем... (~1-2 мин)';
-
-    // Step 3: Poll for result
-    let result = null;
-    for(let i=0; i<60; i++){
+    status.textContent='Обрабатываем... (~1-2 мин)';
+    let result=null;
+    for(let i=0;i<60;i++){
       await new Promise(r=>setTimeout(r,3000));
-      const pollRes = await fetch(`https://api.assemblyai.com/v2/transcript/${transcriptId}`, {
-        headers: {'authorization': '89f3d35d26254d6ab41ef13204bd7e15'}
-      });
-      result = await pollRes.json();
-      if(result.status === 'completed') break;
-      if(result.status === 'error') throw new Error(result.error || 'Ошибка транскрибации');
-      const progress = result.audio_duration ? Math.round((i/60)*100) : '';
-      status.textContent = `Обрабатываем... ${progress ? progress+'%' : ''}`;
+      const pollRes=await fetch(`https://api.assemblyai.com/v2/transcript/${transcriptId}`,{headers:{'authorization':ASSEMBLY_KEY}});
+      result=await pollRes.json();
+      if(result.status==='completed') break;
+      if(result.status==='error') throw new Error(result.error||'Ошибка транскрибации');
+      status.textContent=`Обрабатываем... ${Math.round((i/60)*100)}%`;
     }
-
-    if(!result || result.status !== 'completed') throw new Error('Превышено время ожидания');
-
-    // Step 4: Format transcript with speakers
-    let formatted = '';
-    if(result.utterances && result.utterances.length > 0){
-      const speakers = {};
-      result.utterances.forEach(u => { if(!speakers[u.speaker]) speakers[u.speaker] = Object.keys(speakers).length; });
-      const speakerNames = Object.keys(speakers).length === 2 
-        ? {[Object.keys(speakers)[0]]: 'Менеджер', [Object.keys(speakers)[1]]: 'Клиент'}
-        : {};
-      result.utterances.forEach(u => {
-        const name = speakerNames[u.speaker] || `Спикер ${u.speaker}`;
-        const cls = u.speaker === Object.keys(speakers)[0] ? 'speaker-a' : 'speaker-b';
-        const time = formatTime(u.start);
-        formatted += `<span class="${cls}">[${time}] ${name}:</span> ${u.text}
-
-`;
+    if(!result||result.status!=='completed') throw new Error('Превышено время ожидания');
+    let formatted='';
+    if(result.utterances&&result.utterances.length>0){
+      const speakers={};
+      result.utterances.forEach(u=>{ if(!speakers[u.speaker]) speakers[u.speaker]=Object.keys(speakers).length; });
+      const speakerNames=Object.keys(speakers).length===2?{[Object.keys(speakers)[0]]:'Менеджер',[Object.keys(speakers)[1]]:'Клиент'}:{};
+      result.utterances.forEach(u=>{
+        const name=speakerNames[u.speaker]||`Спикер ${u.speaker}`;
+        const cls=u.speaker===Object.keys(speakers)[0]?'speaker-a':'speaker-b';
+        formatted+=`<span class="${cls}">[${formatTime(u.start)}] ${name}:</span> ${u.text}\n\n`;
       });
-    } else {
-      formatted = result.text || 'Текст не распознан';
-    }
-
-    document.getElementById('transcript-wrap').style.display = 'block';
-    document.getElementById('transcript-text').innerHTML = formatted;
-    status.textContent = '✅ Готово!';
-    toast('✅ Транскрипт готов!','ok');
-
-  } catch(e){
-    toast('Ошибка: '+e.message,'err');
-    status.textContent = '❌ ' + e.message;
-  }
-  btn.disabled = false; btn.textContent = '🎙️ Транскрибировать';
+    } else { formatted=result.text||'Текст не распознан'; }
+    document.getElementById('transcript-wrap').style.display='block';
+    document.getElementById('transcript-text').innerHTML=formatted;
+    status.textContent='✅ Готово!'; toast('✅ Транскрипт готов!','ok');
+  }catch(e){ toast('Ошибка: '+e.message,'err'); status.textContent='❌ '+e.message; }
+  btn.disabled=false; btn.textContent='🎙️ Транскрибировать';
 }
-
-function formatTime(ms){
-  const s = Math.floor(ms/1000);
-  const m = Math.floor(s/60);
-  const sec = s % 60;
-  return `${m}:${sec.toString().padStart(2,'0')}`;
-}
+function formatTime(ms){ const s=Math.floor(ms/1000),m=Math.floor(s/60),sec=s%60; return `${m}:${sec.toString().padStart(2,'0')}`; }
 
 // ══════════════════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════════════════
 (function init(){
-  SB_URL = HARDCODED_URL;
-  SB_KEY = HARDCODED_KEY;
+  SB_URL=HARDCODED_URL; SB_KEY=HARDCODED_KEY;
   document.getElementById('setup-screen').style.display='none';
   document.getElementById('login-screen').style.display='block';
 })();
