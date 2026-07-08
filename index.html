@@ -214,6 +214,11 @@ code{background:#1a1c20;border:1px solid var(--border);border-radius:5px;padding
       <label>Anon Key (public)</label>
       <input id="setup-key" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
     </div>
+    <div class="setup-field" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+      <label>🎙️ AssemblyAI API Key <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0">(для транскрибации звонков)</span></label>
+      <input id="setup-assembly" placeholder="Вставь ключ с assemblyai.com → API Keys" type="password">
+      <div style="font-size:11px;color:var(--muted);margin-top:5px">Ключ хранится только у тебя в браузере, не попадает в код</div>
+    </div>
     <div style="margin-top:16px">
       <button class="btn btn-gold" onclick="saveSetup()" style="width:100%;justify-content:center">💾 Сохранить и продолжить</button>
     </div>
@@ -418,9 +423,10 @@ CREATE POLICY "allow all" ON qa_records FOR ALL USING (true);</div>
 // ══════════════════════════════════════════════════════════
 // CONFIG
 // ══════════════════════════════════════════════════════════
-const ASSEMBLY_KEY = '89f3d35d26254d6ab41ef13204bd7e15';
-const HARDCODED_URL = 'https://fkhoyaufehxcbrbguigz.supabase.co';
-const HARDCODED_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZraG95YXVmZWh4Y2JyYmd1aWd6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5NTE5MDQsImV4cCI6MjA5NTUyNzkwNH0.Q2smdVlK3CmxfR_DuYDsUL2TTspD-I-Z1BpRBkKRudk';
+let ASSEMBLY_KEY = '';
+// Use localStorage for credentials - no hardcoding!
+const HARDCODED_URL = ''; // Не використовується - все з localStorage
+const HARDCODED_KEY = ''; // Не використовується - все з localStorage
 
 // ══════════════════════════════════════════════════════════
 // ПИНЫ ПРОВЕРЯЮЩИХ
@@ -661,9 +667,11 @@ async function deleteRecordDB(id){ return sbFetch('qa_records?id=eq.'+id,'DELETE
 function saveSetup(){
   const url=document.getElementById('setup-url').value.trim().replace(/\/$/,'');
   const key=document.getElementById('setup-key').value.trim();
-  if(!url||!key){ toast('Заполни оба поля!','err'); return; }
+  const asmKey=document.getElementById('setup-assembly').value.trim();
+  if(!url||!key){ toast('Заполни Supabase URL и Anon Key!','err'); return; }
   localStorage.setItem('sb_url',url); localStorage.setItem('sb_key',key);
-  SB_URL=url; SB_KEY=key;
+  if(asmKey) localStorage.setItem('assembly_key',asmKey);
+  SB_URL=url; SB_KEY=key; ASSEMBLY_KEY=asmKey;
   document.getElementById('setup-screen').style.display='none';
   document.getElementById('login-screen').style.display='block';
   toast('✅ Настройки сохранены!','ok');
@@ -1119,6 +1127,7 @@ function onFileSelect(input){
 }
 async function transcribeAudio(){
   if(!selectedFile){ toast('Сначала загрузи файл!','err'); return; }
+  if(!ASSEMBLY_KEY){ toast('⚠️ Добавь AssemblyAI ключ в настройки (assemblyai.com → API Keys)','err'); return; }
   const btn=document.getElementById('transcribe-btn');
   const status=document.getElementById('transcribe-status');
   btn.disabled=true; btn.textContent='⏳ Загрузка...'; status.textContent='Загружаем файл...';
@@ -1165,9 +1174,22 @@ function formatTime(ms){ const s=Math.floor(ms/1000),m=Math.floor(s/60),sec=s%60
 // INIT
 // ══════════════════════════════════════════════════════════
 (function init(){
-  SB_URL=HARDCODED_URL; SB_KEY=HARDCODED_KEY;
-  document.getElementById('setup-screen').style.display='none';
-  document.getElementById('login-screen').style.display='block';
+  // Try to load from localStorage first
+  const savedURL = localStorage.getItem('sb_url');
+  const savedKEY = localStorage.getItem('sb_key');
+  
+  if(savedURL && savedKEY){
+    // Credentials exist - go to login
+    SB_URL = savedURL;
+    SB_KEY = savedKEY;
+    ASSEMBLY_KEY = localStorage.getItem('assembly_key')||'';
+    document.getElementById('setup-screen').style.display='none';
+    document.getElementById('login-screen').style.display='block';
+  } else {
+    // No credentials - show setup screen
+    document.getElementById('setup-screen').style.display='flex';
+    document.getElementById('login-screen').style.display='none';
+  }
 })();
 </script>
 </body>
