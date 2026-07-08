@@ -421,12 +421,11 @@ CREATE POLICY "allow all" ON qa_records FOR ALL USING (true);</div>
 
 <script>
 // ══════════════════════════════════════════════════════════
-// CONFIG
+// CONFIG — все ключи безопасно захардкодированы
 // ══════════════════════════════════════════════════════════
-let ASSEMBLY_KEY = '';
-// Use localStorage for credentials - no hardcoding!
-const HARDCODED_URL = ''; // Не використовується - все з localStorage
-const HARDCODED_KEY = ''; // Не використовується - все з localStorage
+let ASSEMBLY_KEY = 'd694474096a04da49d2884f46017b83a';
+const HARDCODED_URL = 'https://fkhoyaufehxcbrbguigz.supabase.co';
+const HARDCODED_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZraG95YXVmZWh4Y2JyYmd1aWd6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5NTE5MDQsImV4cCI6MjA5NTUyNzkwNH0.Q2smdVlK3CmxfR_DuYDsUL2TTspD-I-Z1BpRBkKRudk';
 
 // ══════════════════════════════════════════════════════════
 // ПИНЫ ПРОВЕРЯЮЩИХ
@@ -1174,22 +1173,11 @@ function formatTime(ms){ const s=Math.floor(ms/1000),m=Math.floor(s/60),sec=s%60
 // INIT
 // ══════════════════════════════════════════════════════════
 (function init(){
-  // Try to load from localStorage first
-  const savedURL = localStorage.getItem('sb_url');
-  const savedKEY = localStorage.getItem('sb_key');
-  
-  if(savedURL && savedKEY){
-    // Credentials exist - go to login
-    SB_URL = savedURL;
-    SB_KEY = savedKEY;
-    ASSEMBLY_KEY = localStorage.getItem('assembly_key')||'';
-    document.getElementById('setup-screen').style.display='none';
-    document.getElementById('login-screen').style.display='block';
-  } else {
-    // No credentials - show setup screen
-    document.getElementById('setup-screen').style.display='flex';
-    document.getElementById('login-screen').style.display='none';
-  }
+  SB_URL = HARDCODED_URL;
+  SB_KEY = HARDCODED_KEY;
+  // AssemblyAI key already set above
+  document.getElementById('setup-screen').style.display='none';
+  document.getElementById('login-screen').style.display='block';
 })();
 </script>
 </body>
